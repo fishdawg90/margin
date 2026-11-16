@@ -1,11 +1,13 @@
 import {KEY,uid,blank,normalise,ensureGroup,makeTask,moveTask,toggleTask as completeTask,safeUrl,today,validDate,mergeBackup,alphabeticalTasks,clearFinishedTasks,restoreFinishedTasks} from './data.js?v=2.2';
+import {createSync} from './sync.js?v=3';
 const $=s=>document.querySelector(s);
+let sync=null,syncApplying=false,syncMessage='Saved on this device';
 const icon=(name)=>{const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden','true');const p=document.createElementNS(svg.namespaceURI,'path');p.setAttribute('d',name==='grip'?'M9 5h.01M15 5h.01M9 12h.01M15 12h.01M9 19h.01M15 19h.01':name==='check'?'m6 12 4 4 8-8':'M12 5v14M5 12h14');svg.append(p);return svg;};
 function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e;}
 let finishRenderTimer;
 let state=blank(),area='work',view='all',query='',newPriority=1,newGroup='',editing=null,editPriority=1,editSubtasks=[],renamingGroup=null,undoState=null,toastTimer,installPrompt,accessToken=null,inlineTask=null,undoAction=null,clearingFinished=false,storageOkay=true,canWrite=true,drag=null,suppressClickUntil=0;
 try{const raw=localStorage.getItem(KEY);if(raw){state=normalise(JSON.parse(raw));if(JSON.parse(raw).version===1){try{if(!localStorage.getItem('margin.notebook.before-v2'))localStorage.setItem('margin.notebook.before-v2',raw);}catch{storageOkay=false;}}}area=state.settings.activeArea;}catch{storageOkay=false;canWrite=false;}
-function save(){if(!canWrite){toast('Existing data could not be read. Export a recovery backup in Settings.',false);return false;}state.settings.activeArea=area;try{localStorage.setItem(KEY,JSON.stringify(state));storageOkay=true;return true;}catch{storageOkay=false;toast('Could not save. Export a backup in Settings.',false);return false;}}
+function save(){if(!canWrite){toast('Existing data could not be read. Export a recovery backup in Settings.',false);return false;}state.settings.activeArea=area;try{localStorage.setItem(KEY,JSON.stringify(state));storageOkay=true;if(!syncApplying)sync?.notify();return true;}catch{storageOkay=false;toast('Could not save. Export a backup in Settings.',false);return false;}}
 function snapshot(){undoState=JSON.stringify(state);undoAction=null;}
 function commit(){save();render();}
 function toast(message,undo=true){clearTimeout(toastTimer);$('#toast-text').textContent=message;$('#undo').hidden=!undo||!(undoState||undoAction);$('#toast').hidden=false;toastTimer=setTimeout(()=>$('#toast').hidden=true,12000);}
@@ -44,7 +46,7 @@ function render(){
  $('#add-form').hidden=view==='done';$('#add-form').style.display=view==='done'?'none':'';
  const g=state.groups.find(g=>g.id===newGroup&&g.area===area);if(!g)newGroup='';
  $('#quick-add').placeholder=g?'Add to '+g.name+'…':'Add a task…';
- $('#save-status').textContent=storageOkay?'Saved on this device':'Not saved · export a backup';
+ $('#save-status').textContent=storageOkay?syncMessage:'Not saved · export a backup';
 }
 function taskRow(t){
  const row=el('article','task'+(t.done?' done':''));row.dataset.id=t.id;row.dataset.dropRow=t.id;
@@ -141,6 +143,51 @@ async function importEmails(){const btn=$('#ms-connect');btn.disabled=true;$('#m
 async function oauthCallback(){const params=new URLSearchParams(location.search);if(!params.has('code')&&!params.has('error'))return;let pkce;try{pkce=JSON.parse(sessionStorage.getItem('margin.ms.pkce')||'null');}catch{}history.replaceState({},'',redirect);state.settings.advanced=true;render();openDialog('#outlook-dialog');if(!pkce||params.get('state')!==pkce.nonce){$('#ms-status').textContent='Sign-in could not be verified. Start again from this device.';return;}sessionStorage.removeItem('margin.ms.pkce');if(params.has('error')){$('#ms-status').textContent='Microsoft sign-in was cancelled or access was declined. Your IT team may need to approve the application.';return;}try{const r=await fetch('https://login.microsoftonline.com/'+pkce.tenant+'/oauth2/v2.0/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({client_id:pkce.client,grant_type:'authorization_code',code:params.get('code'),redirect_uri:pkce.redirect,code_verifier:pkce.verifier,scope:'https://graph.microsoft.com/Mail.ReadBasic'})});const token=await r.json();if(!r.ok||!token.access_token)throw Error('Microsoft sign-in could not finish. Check the SPA redirect URI and your work permissions.');accessToken=token.access_token;await importEmails();}catch(e){$('#ms-status').textContent=e.message;}}
 
 window.addEventListener('storage',event=>{if(event.key!==KEY||!event.newValue)return;try{state=normalise(JSON.parse(event.newValue));render();}catch{toast('Another tab saved unreadable data. Export a backup.',false);}});
+
+sync=createSync({
+ getState:()=>normalise(JSON.parse(localStorage.getItem(KEY)||JSON.stringify(state))),
+ applyData:data=>{
+  const incoming=normalise({...data,version:2,settings:state.settings});
+  state=incoming;syncApplying=true;
+  try{if(!save())throw Error('Sync paused: this device could not save. Export a backup.');}finally{syncApplying=false;}
+  render();
+ },
+ isBusy:()=>!canWrite||!storageOkay||!!document.querySelector('#editor[open],#group-dialog[open]')||!!drag?.active||clearingFinished||!!inlineTask||(!$('#toast').hidden&&!!(undoState||undoAction)),
+ onStatus:message=>{
+  syncMessage=message;if(storageOkay)$('#save-status').textContent=message;
+  $('#sync-status').textContent=message;
+  const connected=!!sync?.getConfig();
+  $('#sync-disconnect').hidden=!connected;$('#sync-now').hidden=!connected;
+ },
+ onConflict:conflicts=>{
+  $('#sync-conflict').hidden=!conflicts.length;
+  $('#sync-conflict-text').textContent=conflicts.length
+   ?'Changed on both devices: '+conflicts.slice(0,3).map(c=>c.title).join(', ')+(conflicts.length>3?' and '+(conflicts.length-3)+' more.':'.')+' Choose which conflicting edits to keep; other changes are merged.'
+   :'';
+ }
+});
+const syncConfig=sync.getConfig();
+if(syncConfig){$('#sync-url').value=syncConfig.url;$('#sync-key').value=syncConfig.key;$('#sync-disconnect').hidden=false;$('#sync-now').hidden=false;}
+$('#sync-connect').onclick=()=>{
+ try{
+  sync.connect({url:$('#sync-url').value,key:$('#sync-key').value});
+  $('#sync-disconnect').hidden=false;$('#sync-now').hidden=false;
+ }catch(error){$('#sync-status').textContent=error.message;}
+};
+$('#sync-now').onclick=()=>sync.syncNow();
+$('#sync-disconnect').onclick=()=>{
+ sync.disconnect();$('#sync-key').value='';$('#sync-disconnect').hidden=true;$('#sync-now').hidden=true;
+ $('#sync-status').textContent='Disconnected. Tasks remain on this device and in Cloudflare.';
+};
+$('#sync-generate').onclick=()=>{
+ $('#sync-key').value=Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
+ $('#sync-key').type='text';$('#sync-show').textContent='Hide key';
+ $('#sync-status').textContent='Save this key in your password manager and as Cloudflare’s SYNC_KEY secret. Use the same key on each device.';
+};
+$('#sync-show').onclick=()=>{const input=$('#sync-key');input.type=input.type==='password'?'text':'password';$('#sync-show').textContent=input.type==='password'?'Show key':'Hide key';};
+$('#sync-keep-local').onclick=()=>sync.resolve('local');
+$('#sync-keep-cloud').onclick=()=>sync.resolve('cloud');
+
 render();oauthCallback();
 if('serviceWorker'in navigator&&!['localhost','127.0.0.1'].includes(location.hostname)){const controlled=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(controlled)location.reload();});navigator.serviceWorker.register('./sw.js').then(r=>r.update()).catch(()=>{});}
 if(navigator.storage?.persist)navigator.storage.persist().catch(()=>{});

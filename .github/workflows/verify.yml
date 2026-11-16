@@ -1,0 +1,19 @@
+name: Verify Margin
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node --check app.js
+      - run: node --check sync.js
+      - run: node --check sw.js
+      - run: node --check cloudflare/worker.mjs
+      - run: node --test tests/*.test.mjs
