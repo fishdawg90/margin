@@ -56,3 +56,9 @@ footer{padding-top:16px}
  .page-foot{margin-top:8px}
  footer{padding-top:12px}
 }
+
+
+/* A small, deliberate finish: erase crossed-off rows, then close the gaps. */
+.list-actions{display:flex;gap:18px;align-items:center}.clear-finished{font-size:11px;color:#888}.clear-finished span{font-size:10px;color:#aaa;margin-left:3px}.clear-finished:hover{color:#333}#clear-finished[hidden]{display:none}.clear-finished:disabled{cursor:wait}.sort-label{align-self:center;padding:0 8px;color:#aaa;font-size:10px;white-space:nowrap}.task.clearing-finished{overflow:hidden;pointer-events:none;isolation:isolate}.task.clearing-finished:after{content:'';position:absolute;inset:-1px -8px;background:#fff;border-left:2px solid #bcbcbc;box-shadow:-7px 0 10px #fff;transform:translateX(-110%);animation:finished-wipe 340ms cubic-bezier(.4,0,.2,1) var(--wipe-delay,0ms) forwards;pointer-events:none;z-index:2}@keyframes finished-wipe{to{transform:translateX(0)}}
+@media(max-width:600px){.list-actions{gap:14px}.clear-finished{font-size:10px}.clear-finished span{font-size:9px}}
+@media(prefers-reduced-motion:reduce){.task.clearing-finished:after{display:none}}

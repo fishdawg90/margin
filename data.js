@@ -38,3 +38,17 @@ export function moveTask(state,id,area,group='',beforeId=null){
 export function nextDate(value,repeat){const d=validDate(value)?new Date(value+'T12:00:00'):new Date();if(repeat==='monthly'){const day=d.getDate();d.setDate(1);d.setMonth(d.getMonth()+1);d.setDate(Math.min(day,new Date(d.getFullYear(),d.getMonth()+1,0).getDate()));}else d.setDate(d.getDate()+(repeat==='weekly'?7:1));return localDate(d);}
 export function toggleTask(state,id){const t=state.tasks.find(t=>t.id===id);if(!t)return null;t.done=!t.done;t.completed=t.done?new Date().toISOString():'';if(t.done&&t.repeat&&!state.tasks.some(x=>x.id===t.successorId)){t.successorId=uid();state.tasks.push({...t,id:t.successorId,successorId:'',done:false,completed:'',due:nextDate(t.due,t.repeat),created:new Date().toISOString(),emailId:'',subtasks:t.subtasks.map(s=>({...s,id:uid(),done:false}))});}return t;}
 export function mergeBackup(state,incoming){const ids=new Set(state.tasks.map(t=>t.id)),groupMap=new Map();for(const g of incoming.groups)groupMap.set(g.id,ensureGroup(state,g.name,g.area));let added=0;for(const t of incoming.tasks)if(!ids.has(t.id)){state.tasks.push({...t,group:groupMap.get(t.group)||''});ids.add(t.id);added++;}return added;}
+
+
+const titleOrder=new Intl.Collator('en',{sensitivity:'base',numeric:true,ignorePunctuation:true});
+export function alphabeticalTasks(tasks){return [...tasks].sort((a,b)=>titleOrder.compare(a.title.trim(),b.title.trim()));}
+export function clearFinishedTasks(state,area){
+ if(!['work','home'].includes(area))return [];
+ const removed=state.tasks.flatMap((task,index)=>task.area===area&&task.done?[{task:structuredClone(task),index}]:[]);
+ const ids=new Set(removed.map(x=>x.task.id));state.tasks=state.tasks.filter(task=>!ids.has(task.id));return removed;
+}
+export function restoreFinishedTasks(state,removed){
+ const ids=new Set(state.tasks.map(t=>t.id));let count=0;
+ for(const {task,index}of removed){if(ids.has(task.id))continue;state.tasks.splice(Math.min(index,state.tasks.length),0,structuredClone(task));ids.add(task.id);count++;}
+ return count;
+}

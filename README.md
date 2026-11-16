@@ -10,7 +10,9 @@ Open **Settings → Pages**. Under **Build and deployment**, choose **Deploy fro
 
 - Choose the large **Work** or **Home** button. Each has its own groups.
 - Type a task and press Enter. Paste several lines to add a batch.
-- **Drag by the grip** into a group, between tasks to reorder, or onto Work / Home to move between lists. Touch handles support direct dragging and edge scrolling. Clicking or keyboard-activating the grip opens the editor's list and group controls as an accessible alternative.
+- **Drag by the grip** into a group, or onto Work / Home to move between lists. Tasks stay in alphabetical A–Z order within each group. Touch handles support direct dragging and edge scrolling. Clicking or keyboard-activating the grip opens the editor's list and group controls as an accessible alternative.
+- Tasks automatically stay alphabetically sorted, including after adding, editing, moving and undoing. Subtasks keep their own step order.
+- **Clear finished** removes completed parent tasks from the selected Work or Home list, across its groups (including tasks hidden by search). A short eraser wipe closes the gaps. Undo restores the removed tasks for 12 seconds. Unfinished tasks, their completed substeps, other lists and groups are kept. Reduced-motion preferences skip the animation.
 - Tap a priority number to cycle 1 → 2 → 3. Three is highest.
 - Tap a circle to cross a task off. Undo is available for ten seconds.
 - Tap a task's words to edit it. List, group and subtasks are always available.
@@ -53,4 +55,5 @@ No build is needed. Run `node --test tests/data.test.mjs` for data migration, mo
 The app was browser-tested at desktop size and in a 390 × 844 phone frame for task creation, priorities, completion, advanced editing, groups, persistence and recurring weekly tasks. JavaScript syntax was checked with Node. Live Outlook access and final-host offline installation need verification on the user's device.
 
 Design inspiration: TeuxDeux's paper-like restraint and Todoist's sections and structured details, with 3 as the maximum priority as requested.
+
 
