@@ -4,3 +4,55 @@
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
 .empty-ungrouped{min-height:20px}.empty-ungrouped .drop-empty{display:none}.empty-ungrouped .ungrouped-label{padding-top:0;padding-bottom:3px}.empty-ungrouped:has(.invisible){min-height:0;display:none}
+
+/* Compact list: give the page back to the tasks. */
+header{height:64px}
+.wordmark{font-size:22px}
+.areas{display:flex;gap:8px;padding:4px 0 8px}
+.area-tab{height:40px;min-width:112px;padding:0 13px;gap:8px;border-radius:10px;font-size:14px;letter-spacing:-.15px}
+.area-tab>svg{width:17px;height:17px}
+.area-count{margin-left:10px;font-size:10px}
+.list-tools{padding:2px 1px 6px}
+.view-switch{gap:20px}
+.view-switch button,.list-tools .quiet{min-height:30px}
+.composer{min-height:44px;padding:4px 6px;border-radius:10px;margin-bottom:9px}
+.composer textarea{font-size:17px;line-height:1.35;min-height:30px;padding:4px}
+.composer .add-mark{width:25px;font-size:20px}
+.composer .submit{width:30px;height:30px}
+.task{min-height:44px;padding:5px 0}
+.task-line{min-height:30px;gap:3px 6px}
+.task-title{font-size:17px;line-height:1.35;min-height:28px;padding:2px 0}
+.task-content{padding-left:5px;padding-right:8px}
+.subtask{font-size:12px;line-height:1.4;min-height:24px;padding:2px 7px}
+.stacked .subtask{font-size:12px;min-height:21px}
+.stacked .subtask:before{top:5px}
+.group-heading{margin-top:10px;padding:3px 0 4px 31px}
+.group-name{font-size:12px;padding:3px 0}
+.group-add{height:28px}
+.ungrouped-label{padding-top:3px;padding-bottom:4px}
+.empty-ungrouped{min-height:14px}
+.page-foot{margin-top:10px}
+footer{padding-top:16px}
+@media(max-width:600px){
+ .shell{padding:0 15px}
+ header{height:52px}
+ .wordmark{font-size:21px}
+ .areas{gap:8px;padding-top:2px;padding-bottom:6px}
+ .area-tab{height:38px;min-width:106px;padding:0 12px;gap:7px;font-size:14px;border-radius:9px}
+ .area-tab svg{width:16px;height:16px}
+ .area-count{font-size:10px;margin-left:9px}
+ .list-tools{padding:1px 1px 5px}
+ .composer{min-height:42px;padding:4px 5px;margin-bottom:7px}
+ .composer textarea{font-size:16px;min-height:29px;padding:4px 3px}
+ .task{min-height:42px;padding:4px 0}
+ .drag-handle,.check{min-height:32px}
+ .task-line{min-height:30px;gap:2px 5px}
+ .task-title{font-size:16px;line-height:1.35;min-height:28px}
+ .task-content{padding-left:5px;padding-right:6px}
+ .subtask,.stacked .subtask{font-size:12px}
+ .subtask{min-height:24px;padding:2px 7px}
+ .group-heading{margin-top:8px;padding:3px 0 4px 27px}
+ .group-name{font-size:11px}
+ .page-foot{margin-top:8px}
+ footer{padding-top:12px}
+}
